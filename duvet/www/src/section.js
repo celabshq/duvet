@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState, useMemo, default as React } from "react";
+import { useState, useMemo, useEffect, useRef, default as React } from "react";
 import { useLocation } from "react-router-dom";
 import { makeStyles, withStyles } from "@material-ui/core/styles";
 import Box from "@material-ui/core/Box";
@@ -18,21 +18,72 @@ import MenuItem from "@material-ui/core/MenuItem";
 import Typography from "@material-ui/core/Typography";
 import clsx from "clsx";
 import copyToClipboard from "copy-to-clipboard";
+import { marked } from "marked";
+import mermaid from "mermaid";
 import { Requirements } from "./spec";
 import { Link } from "./link";
+
+mermaid.initialize({ startOnLoad: false });
+
+function sectionText(lines) {
+  return lines
+    .map((line) => line.map((ref) => ref.text).join(""))
+    .join("\n");
+}
+
+function MarkdownContent({ lines }) {
+  const ref = useRef(null);
+  const html = useMemo(() => {
+    const text = sectionText(lines);
+    return marked
+      .parse(text)
+      .replace(
+        /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+        '<div class="mermaid">$1</div>'
+      );
+  }, [lines]);
+
+  useEffect(() => {
+    if (ref.current) {
+      const nodes = ref.current.querySelectorAll(".mermaid");
+      if (nodes.length) mermaid.run({ nodes: Array.from(nodes) });
+    }
+  }, [html]);
+
+  return <div ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
+}
 
 export function Section({ spec, section }) {
   const requirements = section.requirements || [];
   // the datagrid is crashing on link transition and needs to be rebuilt
   const key = `${spec.id}--${section.id}`;
+  const [showAnnotated, setShowAnnotated] = useState(false);
+
+  const content = section.spec.isMarkdown && !showAnnotated ? (
+    <MarkdownContent lines={section.lines} />
+  ) : (
+    <pre>
+      {section.lines.map((line, i) => (
+        <Line content={line} key={i} />
+      ))}
+    </pre>
+  );
+
+  const toggle = section.spec.isMarkdown ? (
+    <Button
+      size="small"
+      variant="outlined"
+      onClick={() => setShowAnnotated(!showAnnotated)}
+      style={{ marginTop: 8 }}
+    >
+      {showAnnotated ? "Show rendered" : "Show annotated"}
+    </Button>
+  ) : null;
+
   return (
     <>
       <h2>{section.title}</h2>
-      <pre>
-        {section.lines.map((line, i) => (
-          <Line content={line} key={i} />
-        ))}
-      </pre>
+      {content}
       {requirements.length ? (
         <>
           <h3>Requirements</h3>
@@ -43,6 +94,7 @@ export function Section({ spec, section }) {
           />
         </>
       ) : null}
+      {toggle}
     </>
   );
 }

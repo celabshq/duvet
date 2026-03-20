@@ -8,6 +8,8 @@
     "@material-ui/icons": "4",
     "clsx": "1",
     "copy-to-clipboard": "3",
+    "marked": "15",
+    "mermaid": "11",
     "react": "17",
     "react-dom": "17",
     "react-router-dom": "5"

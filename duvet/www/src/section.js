@@ -18,12 +18,28 @@ import MenuItem from "@material-ui/core/MenuItem";
 import Typography from "@material-ui/core/Typography";
 import clsx from "clsx";
 import copyToClipboard from "copy-to-clipboard";
+import hljs from "highlight.js";
+import "highlight.js/styles/github.css";
 import { marked } from "marked";
 import mermaid from "mermaid";
 import { Requirements } from "./spec";
 import { Link } from "./link";
 
 mermaid.initialize({ startOnLoad: false });
+
+marked.use({
+  renderer: {
+    code({ text, lang }) {
+      if (lang === "mermaid") {
+        return `<div class="mermaid">${text}</div>`;
+      }
+      if (lang && hljs.getLanguage(lang)) {
+        return `<pre><code class="hljs language-${lang}">${hljs.highlight(text, { language: lang }).value}</code></pre>`;
+      }
+      return `<pre><code class="hljs">${hljs.highlightAuto(text).value}</code></pre>`;
+    },
+  },
+});
 
 function sectionText(lines) {
   return lines
@@ -33,15 +49,7 @@ function sectionText(lines) {
 
 function MarkdownContent({ lines }) {
   const ref = useRef(null);
-  const html = useMemo(() => {
-    const text = sectionText(lines);
-    return marked
-      .parse(text)
-      .replace(
-        /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
-        '<div class="mermaid">$1</div>'
-      );
-  }, [lines]);
+  const html = useMemo(() => marked.parse(sectionText(lines)), [lines]);
 
   useEffect(() => {
     if (ref.current) {

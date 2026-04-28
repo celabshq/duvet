@@ -42,6 +42,13 @@ pub fn report_writer<Output: Write>(report: &ReportResult, output: &mut Output) 
     w!("Compliance Coverage Report");
     w!("</title>");
 
+    w!("<style>");
+    w!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/www/public/style.css"
+    )));
+    w!("</style>");
+
     w!(r#"<script type="application/json" id=result>"#);
     super::json::report_writer(report, output)?;
     w!("</script>");
